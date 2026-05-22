@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#FFFFFF"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/report_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="#000000"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:text="RELATÓRIO FINANCEIRO LILITH" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="15dp"
+        android:background="#333333" />
+
+    <LinearLayout
+        android:id="@+id/report_rows_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="15dp"
+        android:background="#333333" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RESUMO DO PERÍODO"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="10dp" />
+
+    <TextView android:id="@+id/report_txt_total_general" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#333333" android:textSize="16sp" />
+    <TextView android:id="@+id/report_txt_total_paid" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#2E7D32" android:textSize="16sp" />
+    <TextView android:id="@+id/report_txt_total_pending" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#C62828" android:textSize="16sp" />
+    <TextView android:id="@+id/report_txt_balance" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#000000" android:textSize="18sp" android:textStyle="bold" android:layout_marginTop="5dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:gravity="center"
+        android:text="Gerado automaticamente pelo Lilith App"
+        android:textColor="#777777"
+        android:textSize="12sp" />
+
+</LinearLayout>

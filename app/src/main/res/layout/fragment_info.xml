@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark_background"> <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guia do Lilith"
+        android:textAlignment="center"
+        android:textColor="@color/text_primary"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <View
+        android:layout_width="60dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="24dp"
+        android:background="@color/purple_primary" /> <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="📅 Cadastro Inteligente"
+    android:textColor="@color/purple_primary"
+    android:textSize="18sp"
+    android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="Ao inserir uma conta, defina o número de parcelas. O app projeta os valores nos meses seguintes automaticamente, facilitando sua previsão orçamentária."
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📊 Relatório de Elite (PNG)"
+        android:textColor="@color/purple_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="Transforme sua lista em uma imagem profissional. Ideal para enviar no WhatsApp ou arquivar resumos mensais de gastos e ganhos."
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🖼️ Personalização da Home"
+        android:textColor="@color/purple_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="Sua tela inicial do seu jeito. Use a opção 'Trocar Fundo' no menu lateral para selecionar qualquer foto da sua galeria como plano de fundo."
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🛡️ Segurança e Backup"
+        android:textColor="@color/purple_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="Seus dados ficam apenas no seu celular. Use 'Exportar' para criar um arquivo de segurança e 'Importar' para recuperar tudo ao trocar de aparelho."
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💡 Dicas Rápidas"
+        android:textColor="@color/purple_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="24dp"
+        android:text="• Toque simples: Marca como pago.\n• Clique longo: Remove o lançamento.\n• Saldo Previsto: Soma tudo que ainda falta pagar/receber no mês."
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Versão 2.0 - Lilith Financial Management"
+        android:textAlignment="center"
+        android:textColor="#999999"
+        android:textSize="12sp" />
+
+</LinearLayout>
+</ScrollView>

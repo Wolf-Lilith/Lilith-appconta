@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="8dp">
+    <TextView android:id="@+id/row_desc" android:textColor="@android:color/black" />
+    <TextView android:id="@+id/row_date" android:paddingLeft="16dp" android:textColor="@android:color/black" />
+    <TextView android:id="@+id/row_value" android:paddingLeft="16dp" android:textColor="@android:color/black" />
+    <TextView android:id="@+id/row_status" android:paddingLeft="16dp" android:textColor="@android:color/black" />
+</TableRow>

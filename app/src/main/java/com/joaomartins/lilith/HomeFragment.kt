@@ -1,12 +1,11 @@
 package com.joaomartins.lilith
 
-import android.content.Context
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.joaomartins.lilith.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -25,28 +24,28 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        loadUserBackground()
+        setupNavigation()
     }
 
-    /**
-     * Busca a URI da imagem salva no SharedPreferences e aplica no fundo da Home.
-     */
-    private fun loadUserBackground() {
-        val prefs = requireContext().getSharedPreferences("lilith_prefs", Context.MODE_PRIVATE)
-        val bgUriString = prefs.getString("bg_home_uri", null)
+    private fun setupNavigation() {
+        // Navegação para o Gerenciador de Finanças
+        binding.cardFinance.setOnClickListener {
+            findNavController().navigate(R.id.nav_list)
+        }
 
-        if (bgUriString != null) {
-            try {
-                val uri = Uri.parse(bgUriString)
-                // Aplica a imagem da galeria no ImageView que criamos no XML
-                binding.imgBackground.setImageURI(uri)
+        // Navegação para o Gerenciador de Tarefas
+        binding.cardTasks.setOnClickListener {
+            findNavController().navigate(R.id.nav_tasks)
+        }
 
-                // Garantimos que a opacidade (alpha) seja aplicada mesmo na imagem nova
-                binding.imgBackground.alpha = 0.4f
-            } catch (e: Exception) {
-                // Se der erro (ex: imagem deletada do celular), volta para o padrão
-                binding.imgBackground.setImageResource(R.drawable.logo_lilith)
-            }
+        // Navegação para o Gerenciador de Lembretes
+        binding.cardReminders.setOnClickListener {
+            findNavController().navigate(R.id.nav_reminders)
+        }
+
+        // Navegação para o Bloqueador de Chamadas
+        binding.cardCallBlocker.setOnClickListener {
+            findNavController().navigate(R.id.nav_call_blocker)
         }
     }
 

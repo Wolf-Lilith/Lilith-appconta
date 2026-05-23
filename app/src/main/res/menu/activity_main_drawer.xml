@@ -1,57 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:showIn="navigation_view">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <group android:checkableBehavior="single">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="Início (Hub)" />
+
+    <!-- Seção Finanças -->
+    <group android:id="@+id/group_finance">
         <item
-            android:id="@+id/nav_home"
-            android:icon="@android:drawable/ic_menu_today"
-            android:title="Início" />
+            android:id="@+id/nav_list"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="Minhas Contas" />
         <item
             android:id="@+id/nav_add"
             android:icon="@android:drawable/ic_menu_add"
             android:title="Inserir Conta/Receita" />
         <item
-            android:id="@+id/nav_list"
-            android:icon="@android:drawable/ic_menu_agenda"
-            android:title="Listar Contas" />
+            android:id="@+id/nav_share"
+            android:icon="@android:drawable/ic_menu_share"
+            android:title="Gerar Resumo PNG" />
+    </group>
+
+    <!-- Seção Tarefas -->
+    <group android:id="@+id/group_tasks">
         <item
             android:id="@+id/nav_tasks"
             android:icon="@android:drawable/ic_menu_edit"
-            android:title="Lista de Tarefas" />
+            android:title="Ver Tarefas" />
     </group>
 
-    <item android:title="Personalização e Ajuda">
+    <!-- Seção Lembretes -->
+    <group android:id="@+id/group_reminders">
+        <item
+            android:id="@+id/nav_reminders"
+            android:icon="@android:drawable/ic_lock_idle_alarm"
+            android:title="Lembretes e Alarmes" />
+    </group>
+
+    <!-- Opções Gerais da Suíte -->
+    <item android:title="Suíte Lilith">
         <menu>
             <item
                 android:id="@+id/nav_change_bg"
                 android:icon="@android:drawable/ic_menu_gallery"
-                android:title="Trocar Fundo da Home" />
-
+                android:title="Personalizar Fundo" />
+            <item
+                android:id="@+id/nav_reset_bg"
+                android:icon="@android:drawable/ic_menu_revert"
+                android:title="Fundo Padrão Lilith" />
             <item
                 android:id="@+id/nav_info"
                 android:icon="@android:drawable/ic_menu_info_details"
                 android:title="Sobre o Lilith" />
-        </menu>
-    </item>
-
-    <item android:title="Segurança e Dados">
-        <menu>
             <item
                 android:id="@+id/nav_backup"
                 android:icon="@android:drawable/ic_menu_save"
-                android:title="Exportar Backup (JSON)" />
-
+                android:title="Exportar Backup" />
             <item
                 android:id="@+id/nav_import"
                 android:icon="@android:drawable/ic_menu_upload"
-                android:title="Importar Backup (JSON)" />
-
-            <item
-                android:id="@+id/nav_share"
-                android:icon="@android:drawable/ic_menu_share"
-                android:title="Gerar Resumo PNG" />
+                android:title="Importar Backup" />
         </menu>
     </item>
 </menu>

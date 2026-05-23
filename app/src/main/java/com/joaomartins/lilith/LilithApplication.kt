@@ -12,4 +12,7 @@ class LilithApplication : Application() {
 
     // Cria o repositório de tarefas
     val taskRepository by lazy { TaskRepository(database.taskDao()) }
+
+    // Cria o repositório de lembretes
+    val reminderRepository by lazy { ReminderRepository(database.reminderDao()) }
 }

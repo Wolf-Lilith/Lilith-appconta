@@ -4,16 +4,18 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="@color/dark_background"> <EditText
-    android:id="@+id/edit_description"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:hint="Descrição (Ex: Aluguel)"
-    android:textColor="@color/text_primary"
-    android:textColorHint="@color/text_secondary"
-    android:backgroundTint="@color/purple_primary"
-    android:inputType="textCapSentences"
-    android:padding="12dp" />
+    android:background="@android:color/transparent">
+
+    <EditText
+        android:id="@+id/edit_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Descrição (Ex: Aluguel)"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_secondary"
+        android:backgroundTint="@color/purple_primary"
+        android:inputType="textCapSentences"
+        android:padding="12dp" />
 
     <EditText
         android:id="@+id/edit_value"

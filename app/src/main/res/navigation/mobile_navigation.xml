@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/nav_home"
         android:name="com.joaomartins.lilith.HomeFragment"
-        android:label="Lilith"
+        android:label="Lilith Suíte"
         tools:layout="@layout/fragment_home" />
 
     <fragment
@@ -20,7 +20,7 @@
     <fragment
         android:id="@+id/nav_list"
         android:name="com.joaomartins.lilith.ListAccountFragment"
-        android:label="Suas Contas"
+        android:label="Minhas Contas"
         tools:layout="@layout/fragment_list" />
 
     <fragment
@@ -28,6 +28,18 @@
         android:name="com.joaomartins.lilith.TaskListFragment"
         android:label="Lista de Tarefas"
         tools:layout="@layout/fragment_task_list" />
+
+    <fragment
+        android:id="@+id/nav_reminders"
+        android:name="com.joaomartins.lilith.ReminderListFragment"
+        android:label="Lembretes e Alarmes"
+        tools:layout="@layout/fragment_reminder_list" />
+
+    <fragment
+        android:id="@+id/nav_call_blocker"
+        android:name="com.joaomartins.lilith.CallBlockerFragment"
+        android:label="Bloqueador de Chamadas"
+        tools:layout="@layout/fragment_call_blocker" />
 
     <fragment
         android:id="@+id/nav_info"

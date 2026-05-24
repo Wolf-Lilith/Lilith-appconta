@@ -12,6 +12,11 @@ class TaskRepository(private val taskDao: TaskDao) {
     }
 
     @WorkerThread
+    suspend fun insertTasks(tasks: List<Task>) {
+        taskDao.insertAll(tasks)
+    }
+
+    @WorkerThread
     suspend fun update(task: Task) {
         taskDao.update(task)
     }

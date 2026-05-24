@@ -23,7 +23,6 @@ class ReminderReceiver : BroadcastReceiver() {
         val reminderId = intent.getIntExtra("reminder_id", -1)
         val action = intent.action
 
-        // Usamos goAsync para garantir que a Coroutine termine antes do sistema matar o processo do Receiver
         val pendingResult = goAsync()
         
         CoroutineScope(Dispatchers.IO).launch {
@@ -41,24 +40,21 @@ class ReminderReceiver : BroadcastReceiver() {
                         if (reminderId != -1) dismissReminderSync(context, database, reminderId)
                     }
                     else -> {
-                        // Disparo normal de alarme (action é null ou custom)
                         if (reminderId != -1) {
                             val reminder = database.reminderDao().getReminderById(reminderId)
                             
                             if (reminder != null && reminder.isEnabled) {
-                                // 1. Reseta o estado de "concluído" (vermelho) para o novo ciclo
                                 if (reminder.isDismissed) {
                                     database.reminderDao().update(reminder.copy(isDismissed = false))
                                 }
 
-                                // 2. Verifica se está na faixa de horário antes de notificar
+                                // Verificação de horário aprimorada (suporta virada de meia-noite)
                                 if (isWithinTimeRange(reminder.startTime, reminder.endTime)) {
                                     withContext(Dispatchers.Main) {
                                         showNotification(context, reminder)
                                     }
                                 }
                                 
-                                // 3. Agenda o próximo ciclo (recorrência) - Essencial para manter o loop
                                 if (reminder.intervalMinutes > 0) {
                                     ReminderScheduler.scheduleNext(context, reminder)
                                 }
@@ -69,7 +65,6 @@ class ReminderReceiver : BroadcastReceiver() {
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                // Finaliza o processamento assíncrono do Receiver
                 pendingResult.finish()
             }
         }
@@ -116,7 +111,12 @@ class ReminderReceiver : BroadcastReceiver() {
             val endParts = end.split(":")
             val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
             
-            currentMinutes in startMinutes..endMinutes
+            if (startMinutes <= endMinutes) {
+                currentMinutes in startMinutes..endMinutes
+            } else {
+                // Suporte para virada de meia-noite (ex: 22h às 02h)
+                currentMinutes >= startMinutes || currentMinutes <= endMinutes
+            }
         } catch (e: Exception) {
             true
         }

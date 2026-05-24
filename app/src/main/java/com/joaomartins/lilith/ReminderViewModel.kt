@@ -1,6 +1,7 @@
 package com.joaomartins.lilith
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.*
 import kotlinx.coroutines.launch
 
@@ -11,7 +12,6 @@ class ReminderViewModel(application: Application, private val repository: Remind
     fun insert(reminder: Reminder) = viewModelScope.launch {
         val id = repository.insert(reminder)
         val insertedReminder = reminder.copy(id = id.toInt())
-        // Aciona o primeiro alarme quase imediatamente (10s) para teste e início do ciclo
         ReminderScheduler.scheduleNext(getApplication(), insertedReminder, isInitial = true)
     }
 
@@ -22,23 +22,30 @@ class ReminderViewModel(application: Application, private val repository: Remind
     fun update(reminder: Reminder) = viewModelScope.launch {
         repository.update(reminder)
         if (reminder.isEnabled) {
-            // Se reativar, agenda o próximo ciclo
             ReminderScheduler.scheduleNext(getApplication(), reminder, isInitial = true)
         }
     }
 
-    fun insertDefaultWaterReminder() = viewModelScope.launch {
-        val current = allReminders.value
-        if (current.isNullOrEmpty() || current.none { it.title.contains("Água", ignoreCase = true) }) {
+    /**
+     * Insere o lembrete de água apenas uma vez na vida do app.
+     * Se o usuário deletar, não volta mais automaticamente.
+     */
+    fun checkAndInsertDefaultWaterReminder() = viewModelScope.launch {
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("lilith_prefs", Context.MODE_PRIVATE)
+        val alreadyCreated = sharedPrefs.getBoolean("default_water_created", false)
+        
+        if (!alreadyCreated) {
             insert(
                 Reminder(
                     title = "Beber Água",
                     description = "Hidrate-se! 60 minutos se passaram.",
                     intervalMinutes = 60,
                     startTime = "08:00",
-                    endTime = "22:00"
+                    endTime = "22:00",
+                    daysOfWeek = "1,2,3,4,5,6,7"
                 )
             )
+            sharedPrefs.edit().putBoolean("default_water_created", true).apply()
         }
     }
 }

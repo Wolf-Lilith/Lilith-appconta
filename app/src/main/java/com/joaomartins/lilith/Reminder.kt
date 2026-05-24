@@ -8,10 +8,10 @@ data class Reminder(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val description: String?,
-    val intervalMinutes: Int = 0, // 0 significa que não é recorrente por intervalo
+    val intervalMinutes: Int = 0,
     val startTime: String = "08:00",
     val endTime: String = "22:00",
-    val lastTriggered: Long = 0,
-    val isDismissed: Boolean = false, // Fica vermelho se foi desativado/concluído no ciclo atual
+    val daysOfWeek: String = "1,2,3,4,5,6,7", // 1=Dom, 7=Sab
+    val isDismissed: Boolean = false,
     val isEnabled: Boolean = true
 )

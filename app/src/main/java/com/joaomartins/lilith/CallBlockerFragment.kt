@@ -22,7 +22,8 @@ class CallBlockerFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val sharedPrefs by lazy {
-        requireContext().getSharedPreferences("call_blocker_prefs", Context.MODE_PRIVATE)
+        // Usando o valor 0 (MODE_PRIVATE) para evitar erro de referência do compilador
+        requireContext().getSharedPreferences("call_blocker_prefs", 0)
     }
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -32,7 +33,8 @@ class CallBlockerFragment : Fragment() {
         if (allGranted) {
             checkAndRequestRole()
         } else {
-            Toast.makeText(requireContext(), "Permissões necessárias para o funcionamento.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Permissão necessária para o bloqueador funcionar.", Toast.LENGTH_LONG).show()
+            updateUi()
         }
     }
 
@@ -42,17 +44,18 @@ class CallBlockerFragment : Fragment() {
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             setEnabled(true)
         } else {
-            Toast.makeText(requireContext(), "O Lilith precisa ser o app de chamadas padrão para bloquear.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "O Lilith precisa ser o app de chamadas padrão.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentCallBlockerBinding.inflate(inflater, container, false)
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUi()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -61,48 +64,52 @@ class CallBlockerFragment : Fragment() {
 
         binding.btnToggleBlocker.setOnClickListener {
             val isEnabled = sharedPrefs.getBoolean("enabled", false)
-            if (isEnabled) {
+            val permsOk = hasAllPermissions()
+            
+            if (isEnabled && permsOk) {
+                // Se está tudo ok e ativo, o usuário quer desativar
                 setEnabled(false)
             } else {
+                // Se está desativado OU está ativo mas faltam permissões, tentamos ativar/corrigir
                 checkPermissions()
             }
         }
     }
 
-    private fun checkPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.READ_CONTACTS,
-            Manifest.permission.READ_PHONE_STATE
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            permissions.add(Manifest.permission.ANSWER_PHONE_CALLS)
+    private fun hasAllPermissions(): Boolean {
+        val permissions = mutableListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) permissions.add(Manifest.permission.ANSWER_PHONE_CALLS)
+        
+        return permissions.all {
+            ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
         }
+    }
 
-        val missingPermissions = permissions.filter {
+    private fun checkPermissions() {
+        val permissions = mutableListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) permissions.add(Manifest.permission.ANSWER_PHONE_CALLS)
+
+        val missing = permissions.filter {
             ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
         }
 
-        if (missingPermissions.isEmpty()) {
+        if (missing.isEmpty()) {
             checkAndRequestRole()
         } else {
-            requestPermissionLauncher.launch(missingPermissions.toTypedArray())
+            requestPermissionLauncher.launch(missing.toTypedArray())
         }
     }
 
     private fun checkAndRequestRole() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = requireContext().getSystemService(RoleManager::class.java)
-            if (roleManager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
-                if (!roleManager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
-                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                    roleRequestLauncher.launch(intent)
-                } else {
-                    setEnabled(true)
-                }
+            if (roleManager != null && !roleManager.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
+                roleRequestLauncher.launch(intent)
+            } else {
+                setEnabled(true)
             }
         } else {
-            // Para versões anteriores ao Q, a lógica seria diferente, 
-            // mas como minSdk é 30, focamos no CallScreeningService.
             setEnabled(true)
         }
     }
@@ -116,14 +123,24 @@ class CallBlockerFragment : Fragment() {
 
     private fun updateUi() {
         val isEnabled = sharedPrefs.getBoolean("enabled", false)
-        if (isEnabled) {
-            binding.tvStatusValue.text = "ATIVADO"
-            binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), R.color.revenue_green))
-            binding.btnToggleBlocker.text = "Desativar Bloqueador"
-        } else {
-            binding.tvStatusValue.text = "DESATIVADO"
-            binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), R.color.expense_red))
-            binding.btnToggleBlocker.text = "Ativar Bloqueador"
+        val hasPerms = hasAllPermissions()
+
+        when {
+            isEnabled && !hasPerms -> {
+                binding.tvStatusValue.text = "ERRO DE PERMISSÃO"
+                binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_orange_dark))
+                binding.btnToggleBlocker.text = "Corrigir Permissões"
+            }
+            isEnabled -> {
+                binding.tvStatusValue.text = "ATIVADO"
+                binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), R.color.revenue_green))
+                binding.btnToggleBlocker.text = "Desativar Bloqueador"
+            }
+            else -> {
+                binding.tvStatusValue.text = "DESATIVADO"
+                binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), R.color.expense_red))
+                binding.btnToggleBlocker.text = "Ativar Bloqueador"
+            }
         }
     }
 

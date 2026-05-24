@@ -17,7 +17,6 @@ object ReminderScheduler {
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        // Verifica permissão no Android 12+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
                 Log.w(TAG, "Cannot schedule exact alarms: Permission missing")
@@ -36,43 +35,37 @@ object ReminderScheduler {
         )
 
         val calendar = Calendar.getInstance()
+        val now = calendar.timeInMillis
         
         if (isInitial) {
-            // Se for inicial ou reativação, verifica se o horário atual está na faixa
+            // Se o horário atual já passou do fim ou ainda não chegou no início
             if (!isTimeInsideRange(calendar, reminder.startTime, reminder.endTime)) {
                 setToStartTime(calendar, reminder.startTime)
-                // Se o horário de início já passou hoje, agenda para amanhã
-                if (calendar.before(Calendar.getInstance())) {
+                // Se o horário de início já passou hoje, pula para o próximo dia válido
+                if (calendar.timeInMillis <= now) {
                     calendar.add(Calendar.DAY_OF_YEAR, 1)
                 }
             } else {
-                // Se está na faixa, agenda para daqui a 10 segundos para feedback imediato
+                // Se está dentro da faixa, agendamos um pequeno delay para feedback
                 calendar.add(Calendar.SECOND, 10)
             }
         } else {
-            // Agendamento recorrente por intervalo
+            // Recorrência normal
             if (reminder.intervalMinutes > 0) {
                 calendar.add(Calendar.MINUTE, reminder.intervalMinutes)
             } else {
-                return // Não recorrente
+                return
             }
 
-            // Se o próximo pulo sair da faixa permitida (ex: passou das 22:00)
+            // Se o pulo saiu da faixa (passou das 22h por exemplo)
             if (!isTimeInsideRange(calendar, reminder.startTime, reminder.endTime)) {
-                val nextAttemptTime = calendar.timeInMillis
                 setToStartTime(calendar, reminder.startTime)
-                // Se ao definir para o horário de início (ex: 08:00) ficamos no passado ou no mesmo horário, 
-                // avançamos para o dia seguinte.
-                if (calendar.timeInMillis <= nextAttemptTime) {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
-                }
-                
-                // Garantia extra: se ainda assim estivermos no passado, pula para amanhã
-                if (calendar.before(Calendar.getInstance())) {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
-                }
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
             }
         }
+
+        // Garantir que o agendamento caia em um dia da semana selecionado
+        ensureValidDay(calendar, reminder.daysOfWeek)
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -91,6 +84,18 @@ object ReminderScheduler {
             Log.d(TAG, "Scheduled reminder ${reminder.id} for ${calendar.time}")
         } catch (e: Exception) {
             Log.e(TAG, "Error scheduling alarm", e)
+        }
+    }
+
+    private fun ensureValidDay(cal: Calendar, daysOfWeekStr: String) {
+        val selectedDays = daysOfWeekStr.split(",").mapNotNull { it.trim().toIntOrNull() }
+        if (selectedDays.isEmpty()) return
+
+        var safetyNet = 0
+        // Enquanto o dia da semana atual (Calendar.DAY_OF_WEEK) não estiver na lista, pula pro próximo dia
+        while (!selectedDays.contains(cal.get(Calendar.DAY_OF_WEEK)) && safetyNet < 8) {
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+            safetyNet++
         }
     }
 
@@ -113,7 +118,7 @@ object ReminderScheduler {
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            reminder.id + 5000, // ID diferente para não sobrescrever o principal
+            reminder.id + 5000,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -137,15 +142,21 @@ object ReminderScheduler {
     }
 
     private fun isTimeInsideRange(cal: Calendar, start: String, end: String): Boolean {
-        try {
+        return try {
             val currentMinutes = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
             val startParts = start.split(":")
             val startMinutes = startParts[0].toInt() * 60 + startParts[1].toInt()
             val endParts = end.split(":")
             val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
-            return currentMinutes in startMinutes..endMinutes
+
+            if (startMinutes <= endMinutes) {
+                currentMinutes in startMinutes..endMinutes
+            } else {
+                // Caso atravesse a meia-noite (ex: 22h às 02h)
+                currentMinutes >= startMinutes || currentMinutes <= endMinutes
+            }
         } catch (e: Exception) {
-            return true
+            true
         }
     }
 }

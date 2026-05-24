@@ -1,58 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <EditText
-        android:id="@+id/edt_reminder_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Título (ex: Beber Água)"
-        android:inputType="textCapSentences" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Repetir a cada (minutos):" />
-
-    <Spinner
-        android:id="@+id/spinner_interval"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Faixa de Horário Ativa"
-        android:textStyle="bold" />
+    android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <EditText
-            android:id="@+id/edt_start_time"
-            android:layout_width="0dp"
+            android:id="@+id/edt_reminder_title"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Início (08:00)"
-            android:focusable="false"
-            android:clickable="true" />
+            android:hint="Título (ex: Beber Água)"
+            android:inputType="textCapSentences" />
 
-        <EditText
-            android:id="@+id/edt_end_time"
-            android:layout_width="0dp"
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Fim (22:00)"
-            android:focusable="false"
-            android:clickable="true" />
+            android:layout_marginTop="8dp"
+            android:text="Repetir a cada (minutos):" />
+
+        <Spinner
+            android:id="@+id/spinner_interval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Faixa de Horário Ativa"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/edt_start_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Início (08:00)"
+                android:focusable="false"
+                android:clickable="true" />
+
+            <EditText
+                android:id="@+id/edt_end_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Fim (22:00)"
+                android:focusable="false"
+                android:clickable="true" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Dias da Semana"
+            android:textStyle="bold" />
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="4">
+
+            <CheckBox android:id="@+id/cb_dom" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dom" android:checked="true" />
+            <CheckBox android:id="@+id/cb_seg" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Seg" android:checked="true" />
+            <CheckBox android:id="@+id/cb_ter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ter" android:checked="true" />
+            <CheckBox android:id="@+id/cb_qua" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Qua" android:checked="true" />
+            <CheckBox android:id="@+id/cb_qui" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Qui" android:checked="true" />
+            <CheckBox android:id="@+id/cb_sex" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sex" android:checked="true" />
+            <CheckBox android:id="@+id/cb_sab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sab" android:checked="true" />
+
+        </GridLayout>
+
     </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

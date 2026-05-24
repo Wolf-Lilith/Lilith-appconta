@@ -24,6 +24,7 @@ class AccountViewModel(private val repository: AccountRepository) : ViewModel() 
         viewModelScope.launch(Dispatchers.IO) {
             val calendar = Calendar.getInstance()
             calendar.timeInMillis = startDateMillis
+            val accountsToInsert = mutableListOf<Account>()
 
             for (i in 1..totalParcels) {
                 val finalDescription = if (totalParcels > 1) {
@@ -42,11 +43,14 @@ class AccountViewModel(private val repository: AccountRepository) : ViewModel() 
                     isPaid = false
                 )
 
-                repository.insert(account)
+                accountsToInsert.add(account)
 
                 // Avança um mês para a próxima parcela
                 calendar.add(Calendar.MONTH, 1)
             }
+            
+            // Inserção em lote é mais eficiente
+            repository.insertAccounts(accountsToInsert)
         }
     }
 

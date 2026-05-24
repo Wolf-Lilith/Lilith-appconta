@@ -23,17 +23,16 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.navigation.NavigationView
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.joaomartins.lilith.databinding.ActivityMainBinding
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.io.File
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private val backupHelper by lazy { BackupHelper(this) }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -87,6 +86,7 @@ class MainActivity : AppCompatActivity() {
 
         loadGlobalBackground()
         checkAndRequestPermissions()
+        handleIntent(intent)
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val menu = navView.menu
@@ -117,6 +117,19 @@ class MainActivity : AppCompatActivity() {
                     if (handled) drawerLayout.closeDrawers()
                     handled
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        intent?.let {
+            if (it.getStringExtra("navigate_to") == "call_blocker") {
+                findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_call_blocker)
             }
         }
     }
@@ -178,10 +191,14 @@ class MainActivity : AppCompatActivity() {
         val bgUriString = prefs.getString("bg_global_uri", null)
         if (bgUriString != null) {
             try {
-                updateGlobalBackground(Uri.parse(bgUriString))
+                val uri = Uri.parse(bgUriString)
+                contentResolver.openInputStream(uri)?.close()
+                updateGlobalBackground(uri)
             } catch (e: Exception) {
                 binding.imgGlobalBackground.setImageResource(R.drawable.logo_lilith)
                 binding.imgGlobalBackground.alpha = 1.0f
+                prefs.edit().remove("bg_global_uri").apply()
+                Toast.makeText(this, "A imagem de fundo não está mais disponível.", Toast.LENGTH_SHORT).show()
             }
         } else {
             binding.imgGlobalBackground.setImageResource(R.drawable.logo_lilith)
@@ -216,25 +233,20 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val accounts = lilithApp.repository.allAccounts.first()
-                val tasks = lilithApp.database.taskDao().getAllTasks().first()
-                val reminders = lilithApp.database.reminderDao().getAllRemindersSync()
+                val tasks = lilithApp.taskRepository.allTasks.first()
+                val reminders = lilithApp.reminderRepository.allReminders.first()
                 
-                val backupData = JsonObject()
-                val gson = GsonBuilder().setPrettyPrinting().create()
+                val file = backupHelper.createBackupFile(accounts, tasks, reminders)
                 
-                backupData.add("accounts", gson.toJsonTree(accounts))
-                backupData.add("tasks", gson.toJsonTree(tasks))
-                backupData.add("reminders", gson.toJsonTree(reminders))
-                
-                val file = File(cacheDir, "lilith_suite_backup.json")
-                file.writeText(gson.toJson(backupData))
-                val contentUri = FileProvider.getUriForFile(this@MainActivity, "${packageName}.fileprovider", file)
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/json"
-                    putExtra(Intent.EXTRA_STREAM, contentUri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (file != null) {
+                    val contentUri = FileProvider.getUriForFile(this@MainActivity, "${packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_STREAM, contentUri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(Intent.createChooser(intent, "Salvar Backup Lilith"))
                 }
-                startActivity(Intent.createChooser(intent, "Salvar Backup Lilith"))
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, "Erro no backup: ${e.message}", Toast.LENGTH_LONG).show()
             }
@@ -244,48 +256,70 @@ class MainActivity : AppCompatActivity() {
     private fun importFullBackup(uri: Uri) {
         lifecycleScope.launch {
             try {
-                val inputStream = contentResolver.openInputStream(uri)
-                val jsonString = inputStream?.bufferedReader()?.use { it.readText() }
-                if (!jsonString.isNullOrEmpty()) {
-                    val element = JsonParser.parseString(jsonString)
-                    val gson = GsonBuilder().create()
-                    val lilithApp = (application as LilithApplication)
-                    
-                    if (element.isJsonObject) {
-                        val root = element.asJsonObject
+                val root = backupHelper.parseBackup(uri) ?: return@launch
+                val gson = GsonBuilder().create()
+                val lilithApp = (application as LilithApplication)
+                
+                // Importar Contas com Lógica de Compatibilidade
+                if (root.has("accounts")) {
+                    val accounts = root.getAsJsonArray("accounts").map { jsonElem ->
+                        val obj = jsonElem.asJsonObject
+                        var dueDate = if (obj.has("dueDate")) obj.get("dueDate").asLong else 0L
                         
-                        // Importar Contas
-                        if (root.has("accounts")) {
-                            root.getAsJsonArray("accounts").forEach { 
-                                lilithApp.repository.insert(gson.fromJson(it, Account::class.java).copy(id = 0)) 
-                            }
-                        }
-                        
-                        // Importar Tarefas
-                        if (root.has("tasks")) {
-                            root.getAsJsonArray("tasks").forEach { 
-                                lilithApp.database.taskDao().insert(gson.fromJson(it, Task::class.java).copy(id = 0)) 
-                            }
+                        // Compatibilidade: Se não tem dueDate, mas tem day/month/year (versão antiga)
+                        if (dueDate == 0L && obj.has("day") && obj.has("month") && obj.has("year")) {
+                            val cal = Calendar.getInstance()
+                            cal.set(obj.get("year").asInt, obj.get("month").asInt, obj.get("day").asInt)
+                            dueDate = cal.timeInMillis
                         }
 
-                        // Importar Lembretes
-                        if (root.has("reminders")) {
-                            root.getAsJsonArray("reminders").forEach { 
-                                val reminder = gson.fromJson(it, Reminder::class.java).copy(id = 0)
-                                val newId = lilithApp.database.reminderDao().insert(reminder)
-                                if (reminder.isEnabled) {
-                                    ReminderScheduler.scheduleNext(this@MainActivity, reminder.copy(id = newId.toInt()), isInitial = true)
-                                }
-                            }
+                        Account(
+                            description = obj.get("description").asString,
+                            value = obj.get("value").asDouble,
+                            isRevenue = obj.get("isRevenue").asBoolean,
+                            isPaid = if (obj.has("isPaid")) obj.get("isPaid").asBoolean else false,
+                            dueDate = dueDate,
+                            currentParcel = if (obj.has("currentParcel")) obj.get("currentParcel").asInt else 1,
+                            totalParcels = if (obj.has("totalParcels")) obj.get("totalParcels").asInt else 1
+                        )
+                    }
+                    lilithApp.repository.insertAccounts(accounts)
+                }
+                
+                // Importar Tarefas com Compatibilidade
+                if (root.has("tasks")) {
+                    val tasks = root.getAsJsonArray("tasks").map { jsonElem ->
+                        val obj = jsonElem.asJsonObject
+                        Task(
+                            id = 0,
+                            title = obj.get("title").asString,
+                            isCompleted = if (obj.has("isCompleted")) obj.get("isCompleted").asBoolean else false,
+                            createdAt = if (obj.has("createdAt")) obj.get("createdAt").asLong else System.currentTimeMillis()
+                        )
+                    }
+                    lilithApp.taskRepository.insertTasks(tasks)
+                }
+
+                // Importar Lembretes com Compatibilidade
+                if (root.has("reminders")) {
+                    root.getAsJsonArray("reminders").forEach { jsonElem ->
+                        var reminder = gson.fromJson(jsonElem, Reminder::class.java).copy(id = 0)
+                        if (reminder.daysOfWeek.isNullOrEmpty()) {
+                            reminder = reminder.copy(daysOfWeek = "1,2,3,4,5,6,7")
                         }
-                    } else if (element.isJsonArray) {
-                        // Legado: importa apenas contas se for um array simples
-                        element.asJsonArray.forEach { 
-                            try { lilithApp.repository.insert(gson.fromJson(it, Account::class.java).copy(id = 0)) } catch (e: Exception) {} 
+                        val newId = lilithApp.reminderRepository.insert(reminder)
+                        if (reminder.isEnabled) {
+                            ReminderScheduler.scheduleNext(this@MainActivity, reminder.copy(id = newId.toInt()), isInitial = true)
                         }
                     }
-                    Toast.makeText(this@MainActivity, "Importado com sucesso!", Toast.LENGTH_LONG).show()
                 }
+                
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Sucesso")
+                    .setMessage("Dados importados com sucesso!")
+                    .setPositiveButton("OK", null)
+                    .show()
+
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, "Erro ao importar: ${e.message}", Toast.LENGTH_LONG).show()
             }

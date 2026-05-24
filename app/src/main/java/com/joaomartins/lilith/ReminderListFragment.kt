@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
@@ -48,9 +49,8 @@ class ReminderListFragment : Fragment() {
 
         viewModel.allReminders.observe(viewLifecycleOwner) { reminders ->
             adapter.submitList(reminders)
-            if (reminders.isEmpty()) {
-                viewModel.insertDefaultWaterReminder()
-            }
+            // Agora usamos a função que verifica se já foi criado uma vez
+            viewModel.checkAndInsertDefaultWaterReminder()
         }
 
         binding.fabAddReminder.setOnClickListener {
@@ -64,15 +64,22 @@ class ReminderListFragment : Fragment() {
         val spinnerInterval = dialogView.findViewById<Spinner>(R.id.spinner_interval)
         val edtStart = dialogView.findViewById<EditText>(R.id.edt_start_time)
         val edtEnd = dialogView.findViewById<EditText>(R.id.edt_end_time)
+        
+        // Checkboxes dos dias
+        val cbDom = dialogView.findViewById<CheckBox>(R.id.cb_dom)
+        val cbSeg = dialogView.findViewById<CheckBox>(R.id.cb_seg)
+        val cbTer = dialogView.findViewById<CheckBox>(R.id.cb_ter)
+        val cbQua = dialogView.findViewById<CheckBox>(R.id.cb_qua)
+        val cbQui = dialogView.findViewById<CheckBox>(R.id.cb_qui)
+        val cbSex = dialogView.findViewById<CheckBox>(R.id.cb_sex)
+        val cbSab = dialogView.findViewById<CheckBox>(R.id.cb_sab)
 
-        // Preenche o Spinner de 5 em 5 até 60
         val intervals = (5..60 step 5).toList()
         val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, intervals)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerInterval.adapter = spinnerAdapter
-        spinnerInterval.setSelection(intervals.indexOf(60)) // Padrão 60m
+        spinnerInterval.setSelection(intervals.indexOf(60))
 
-        // Configura seletores de tempo
         edtStart.setOnClickListener { showTimePicker { time -> edtStart.setText(time) } }
         edtEnd.setOnClickListener { showTimePicker { time -> edtEnd.setText(time) } }
 
@@ -84,17 +91,30 @@ class ReminderListFragment : Fragment() {
                 val interval = spinnerInterval.selectedItem as Int
                 val start = edtStart.text.toString().ifEmpty { "08:00" }
                 val end = edtEnd.text.toString().ifEmpty { "22:00" }
+                
+                // Mapeia dias selecionados (Calendar.SUNDAY = 1, etc)
+                val selectedDays = mutableListOf<Int>()
+                if (cbDom.isChecked) selectedDays.add(1)
+                if (cbSeg.isChecked) selectedDays.add(2)
+                if (cbTer.isChecked) selectedDays.add(3)
+                if (cbQua.isChecked) selectedDays.add(4)
+                if (cbQui.isChecked) selectedDays.add(5)
+                if (cbSex.isChecked) selectedDays.add(6)
+                if (cbSab.isChecked) selectedDays.add(7)
 
-                if (title.isNotBlank()) {
+                if (title.isNotBlank() && selectedDays.isNotEmpty()) {
                     viewModel.insert(
                         Reminder(
                             title = title,
                             description = "Lembrete recorrente",
                             intervalMinutes = interval,
                             startTime = start,
-                            endTime = end
+                            endTime = end,
+                            daysOfWeek = selectedDays.joinToString(",")
                         )
                     )
+                } else if (selectedDays.isEmpty()) {
+                    Toast.makeText(requireContext(), "Selecione ao menos um dia!", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancelar", null)

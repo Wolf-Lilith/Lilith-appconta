@@ -13,6 +13,11 @@ class AccountRepository(private val accountDao: AccountDao) {
     }
 
     @WorkerThread
+    suspend fun insertAccounts(accounts: List<Account>) {
+        accountDao.insertAll(accounts)
+    }
+
+    @WorkerThread
     suspend fun delete(account: Account) {
         accountDao.delete(account)
     }

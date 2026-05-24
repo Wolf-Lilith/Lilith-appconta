@@ -17,9 +17,5 @@ O aplicativo foi desenvolvido utilizando boas práticas de desenvolvimento Andro
 *   **Ferramenta de Build:** Gradle (Kotlin DSL)
 *   **Interface:** Material Design (Foco em legibilidade e contraste)
 
-## 📸 Demonstração
-*(Dica: Quando o app estiver pronto, tire prints das telas e coloque os arquivos na pasta do projeto para linkar aqui)*
-<!-- <img src="app/src/main/res/drawable/fundo_app.png" width="300"> -->
-
 ---
 Desenvolvido por João Vitor Gomes Pereira Martins.

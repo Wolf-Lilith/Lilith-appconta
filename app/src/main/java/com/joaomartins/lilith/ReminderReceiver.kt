@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
-import android.os.Build
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +23,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val action = intent.action
 
         val pendingResult = goAsync()
-        
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val database = AppDatabase.getDatabase(context)
@@ -42,7 +41,7 @@ class ReminderReceiver : BroadcastReceiver() {
                     else -> {
                         if (reminderId != -1) {
                             val reminder = database.reminderDao().getReminderById(reminderId)
-                            
+
                             if (reminder != null && reminder.isEnabled) {
                                 if (reminder.isDismissed) {
                                     database.reminderDao().update(reminder.copy(isDismissed = false))
@@ -54,10 +53,9 @@ class ReminderReceiver : BroadcastReceiver() {
                                         showNotification(context, reminder)
                                     }
                                 }
-                                
-                                if (reminder.intervalMinutes > 0) {
-                                    ReminderScheduler.scheduleNext(context, reminder)
-                                }
+
+                                // Sempre reagenda o próximo alarme, delegando o cálculo do intervalo ou próximo dia para o ReminderScheduler
+                                ReminderScheduler.scheduleNext(context, reminder)
                             }
                         }
                     }
@@ -80,10 +78,10 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private suspend fun snoozeReminderSync(context: Context, database: AppDatabase, reminderId: Int) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(reminderId)
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager?.cancel(reminderId)
         val reminder = database.reminderDao().getReminderById(reminderId)
-        reminder?.let { 
+        reminder?.let {
             ReminderScheduler.scheduleSnooze(context, it)
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Soneca de 5 minutos ativada.", Toast.LENGTH_SHORT).show()
@@ -92,10 +90,10 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private suspend fun dismissReminderSync(context: Context, database: AppDatabase, reminderId: Int) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(reminderId)
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager?.cancel(reminderId)
         val reminder = database.reminderDao().getReminderById(reminderId)
-        reminder?.let { 
+        reminder?.let {
             database.reminderDao().update(it.copy(isDismissed = true))
         }
     }
@@ -104,13 +102,13 @@ class ReminderReceiver : BroadcastReceiver() {
         return try {
             val now = Calendar.getInstance()
             val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-            
+
             val startParts = start.split(":")
             val startMinutes = startParts[0].toInt() * 60 + startParts[1].toInt()
-            
+
             val endParts = end.split(":")
             val endMinutes = endParts[0].toInt() * 60 + endParts[1].toInt()
-            
+
             if (startMinutes <= endMinutes) {
                 currentMinutes in startMinutes..endMinutes
             } else {
@@ -123,27 +121,26 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private fun showNotification(context: Context, reminder: Reminder) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "lilith_reminders_v2" 
-        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) 
+        val notificationManager = context.getSystemService(NotificationManager::class.java) ?: return
+        val channelId = "lilith_reminders_v3"
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val attributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
+        // Ajuste: Removido o condicional de SDK_INT >= O por ser redundante em minSdk >= 30
+        val attributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
 
-            val channel = NotificationChannel(channelId, "Lembretes Lilith", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Notificações de lembretes e alarmes"
-                enableLights(true)
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 1000, 500, 1000)
-                setSound(soundUri, attributes)
-                setBypassDnd(true)
-            }
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(channelId, "Lembretes Lilith", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "Notificações de lembretes e alarmes"
+            enableLights(true)
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 1000, 500, 1000)
+            setSound(soundUri, attributes)
+            setBypassDnd(true)
         }
+        notificationManager.createNotificationChannel(channel)
 
         val mainIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -162,6 +159,13 @@ class ReminderReceiver : BroadcastReceiver() {
         }
         val dismissPI = PendingIntent.getBroadcast(context, reminder.id + 2000, dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
+        // Nova Intent configurada especificamente para abrir a tela cheia sobre o bloqueio
+        val alertIntent = Intent(context, ReminderAlertActivity::class.java).apply {
+            putExtra("reminder_id", reminder.id)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
+        }
+        val alertPI = PendingIntent.getActivity(context, reminder.id + 4000, alertIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(reminder.title)
@@ -175,7 +179,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "OK", dismissPI)
             .setAutoCancel(true)
             .setOngoing(true)
-            .setFullScreenIntent(mainPI, true)
+            .setFullScreenIntent(alertPI, true) // Substituído aqui para chamar a ReminderAlertActivity diretamente
 
         notificationManager.notify(reminder.id, builder.build())
     }

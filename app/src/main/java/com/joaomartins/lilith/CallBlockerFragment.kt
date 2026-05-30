@@ -65,8 +65,14 @@ class CallBlockerFragment : Fragment() {
         binding.btnToggleBlocker.setOnClickListener {
             val isEnabled = sharedPrefs.getBoolean("enabled", false)
             val permsOk = hasAllPermissions()
-            
-            if (isEnabled && permsOk) {
+            val isRoleHeld = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val roleManager = requireContext().getSystemService(RoleManager::class.java)
+                roleManager?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
+            } else {
+                true
+            }
+
+            if (isEnabled && permsOk && isRoleHeld) {
                 // Se está tudo ok e ativo, o usuário quer desativar
                 setEnabled(false)
             } else {
@@ -79,7 +85,7 @@ class CallBlockerFragment : Fragment() {
     private fun hasAllPermissions(): Boolean {
         val permissions = mutableListOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) permissions.add(Manifest.permission.ANSWER_PHONE_CALLS)
-        
+
         return permissions.all {
             ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
         }
@@ -124,9 +130,15 @@ class CallBlockerFragment : Fragment() {
     private fun updateUi() {
         val isEnabled = sharedPrefs.getBoolean("enabled", false)
         val hasPerms = hasAllPermissions()
+        val isRoleHeld = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = requireContext().getSystemService(RoleManager::class.java)
+            roleManager?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
+        } else {
+            true
+        }
 
         when {
-            isEnabled && !hasPerms -> {
+            isEnabled && (!hasPerms || !isRoleHeld) -> {
                 binding.tvStatusValue.text = "ERRO DE PERMISSÃO"
                 binding.tvStatusValue.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_orange_dark))
                 binding.btnToggleBlocker.text = "Corrigir Permissões"

@@ -16,7 +16,7 @@ object ReminderScheduler {
         if (!reminder.isEnabled) return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
                 Log.w(TAG, "Cannot schedule exact alarms: Permission missing")
@@ -35,37 +35,68 @@ object ReminderScheduler {
         )
 
         val calendar = Calendar.getInstance()
-        val now = calendar.timeInMillis
-        
-        if (isInitial) {
-            // Se o horário atual já passou do fim ou ainda não chegou no início
-            if (!isTimeInsideRange(calendar, reminder.startTime, reminder.endTime)) {
-                setToStartTime(calendar, reminder.startTime)
-                // Se o horário de início já passou hoje, pula para o próximo dia válido
-                if (calendar.timeInMillis <= now) {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+        // Zera segundos e milissegundos para evitar acúmulo de atrasos (drift)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val nowCal = calendar.clone() as Calendar
+
+        val selectedDays = reminder.daysOfWeek.split(",").mapNotNull { it.trim().toIntOrNull() }
+
+        var found = false
+        var loops = 0
+
+        // Motor unificado: varre os dias e faixas de horários garantindo agendamentos estritamente futuros
+        while (!found && loops < 8) {
+            val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+
+            if (selectedDays.contains(currentDayOfWeek)) {
+                val startParts = reminder.startTime.split(":")
+                val endParts = reminder.endTime.split(":")
+
+                val startCal = calendar.clone() as Calendar
+                startCal.set(Calendar.HOUR_OF_DAY, startParts[0].toInt())
+                startCal.set(Calendar.MINUTE, startParts[1].toInt())
+
+                val endCal = calendar.clone() as Calendar
+                endCal.set(Calendar.HOUR_OF_DAY, endParts[0].toInt())
+                endCal.set(Calendar.MINUTE, endParts[1].toInt())
+
+                // Suporte para janelas que cruzam a meia-noite (ex: 22h às 02h)
+                if (endCal.before(startCal)) {
+                    endCal.add(Calendar.DAY_OF_YEAR, 1)
                 }
-            } else {
-                // Se está dentro da faixa, agendamos um pequeno delay para feedback
-                calendar.add(Calendar.SECOND, 10)
-            }
-        } else {
-            // Recorrência normal
-            if (reminder.intervalMinutes > 0) {
-                calendar.add(Calendar.MINUTE, reminder.intervalMinutes)
-            } else {
-                return
+
+                if (nowCal.before(startCal)) {
+                    // Cenário A: Ainda não chegou na hora inicial do dia válido
+                    calendar.set(Calendar.HOUR_OF_DAY, startParts[0].toInt())
+                    calendar.set(Calendar.MINUTE, startParts[1].toInt())
+                    found = true
+                } else if (!nowCal.after(endCal)) {
+                    // Cenário B: Estamos dentro da janela ativa de horário
+                    if (reminder.intervalMinutes > 0) {
+                        val runningCal = startCal.clone() as Calendar
+                        while (!runningCal.after(nowCal)) {
+                            runningCal.add(Calendar.MINUTE, reminder.intervalMinutes)
+                        }
+                        // Verifica se o próximo incremento ainda respeita o teto final
+                        if (!runningCal.after(endCal)) {
+                            calendar.timeInMillis = runningCal.timeInMillis
+                            found = true
+                        }
+                    }
+                    // Se o intervalo for 0 (disparo único), found continuará falso e jogará para o próximo dia
+                }
             }
 
-            // Se o pulo saiu da faixa (passou das 22h por exemplo)
-            if (!isTimeInsideRange(calendar, reminder.startTime, reminder.endTime)) {
-                setToStartTime(calendar, reminder.startTime)
+            if (!found) {
+                // Avança para o início do próximo dia para nova análise de ciclo
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
+                val startParts = reminder.startTime.split(":")
+                calendar.set(Calendar.HOUR_OF_DAY, startParts[0].toInt())
+                calendar.set(Calendar.MINUTE, startParts[1].toInt())
+                loops++
             }
         }
-
-        // Garantir que o agendamento caia em um dia da semana selecionado
-        ensureValidDay(calendar, reminder.daysOfWeek)
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -113,6 +144,15 @@ object ReminderScheduler {
 
     fun scheduleSnooze(context: Context, reminder: Reminder) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // Proteção contra crash no Android 12+ para a soneca
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.w(TAG, "Cannot schedule exact snooze alarm: Permission missing")
+                return
+            }
+        }
+
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             putExtra("reminder_id", reminder.id)
         }

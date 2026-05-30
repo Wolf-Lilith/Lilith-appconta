@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="24dp"
+        android:src="@android:drawable/ic_lock_idle_alarm"
+        android:contentDescription="Alarme" />
+
+    <TextView
+        android:id="@+id/tv_alert_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Título do Lembrete"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tv_alert_description"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Descrição detalhada do lembrete aqui."
+        android:textColor="#B3B3B3"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="48dp" />
+
+    <Button
+        android:id="@+id/btn_alert_ok"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="OK (Botão Volume)"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:backgroundTint="#2E7D32"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btn_alert_snooze"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Soneca (5 min)"
+        android:textSize="16sp"
+        android:backgroundTint="#424242"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>

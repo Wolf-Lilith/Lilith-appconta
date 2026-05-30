@@ -48,8 +48,9 @@ class MainActivity : AppCompatActivity() {
         uri?.let { importFullBackup(it) }
     }
 
+    // Alterado para OpenDocument para assegurar persistência de URI real e evitar SecurityException
     private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
+        ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { selectedUri ->
             try {
@@ -104,7 +105,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_share -> { triggerExport(); drawerLayout.closeDrawers(); true }
                 R.id.nav_backup -> { triggerFullBackup() ; drawerLayout.closeDrawers(); true }
                 R.id.nav_import -> { importBackupLauncher.launch("*/*"); drawerLayout.closeDrawers(); true }
-                R.id.nav_change_bg -> { pickImageLauncher.launch("image/*"); drawerLayout.closeDrawers(); true }
+                R.id.nav_change_bg -> { pickImageLauncher.launch(arrayOf("image/*")); drawerLayout.closeDrawers(); true }
                 R.id.nav_reset_bg -> {
                     getSharedPreferences("lilith_prefs", MODE_PRIVATE).edit().remove("bg_global_uri").apply()
                     binding.imgGlobalBackground.setImageResource(R.drawable.logo_lilith)
@@ -175,7 +176,15 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Permissão de Alarme")
             .setMessage("O Lilith precisa de permissão para definir alarmes exatos e recorrentes.")
             .setPositiveButton("Autorizar") { _, _ ->
-                startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                try {
+                    // Tenta redirecionar o usuário diretamente para o switch do Lilith
+                    startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.parse("package:$packageName")
+                    })
+                } catch (e: Exception) {
+                    // Fallback genérico caso o fabricante remova o suporte a data uri
+                    startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                }
             }
             .setNegativeButton("Depois", null).show()
     }
@@ -235,9 +244,9 @@ class MainActivity : AppCompatActivity() {
                 val accounts = lilithApp.repository.allAccounts.first()
                 val tasks = lilithApp.taskRepository.allTasks.first()
                 val reminders = lilithApp.reminderRepository.allReminders.first()
-                
+
                 val file = backupHelper.createBackupFile(accounts, tasks, reminders)
-                
+
                 if (file != null) {
                     val contentUri = FileProvider.getUriForFile(this@MainActivity, "${packageName}.fileprovider", file)
                     val intent = Intent(Intent.ACTION_SEND).apply {
@@ -259,13 +268,13 @@ class MainActivity : AppCompatActivity() {
                 val root = backupHelper.parseBackup(uri) ?: return@launch
                 val gson = GsonBuilder().create()
                 val lilithApp = (application as LilithApplication)
-                
+
                 // Importar Contas com Lógica de Compatibilidade
                 if (root.has("accounts")) {
                     val accounts = root.getAsJsonArray("accounts").map { jsonElem ->
                         val obj = jsonElem.asJsonObject
                         var dueDate = if (obj.has("dueDate")) obj.get("dueDate").asLong else 0L
-                        
+
                         // Compatibilidade: Se não tem dueDate, mas tem day/month/year (versão antiga)
                         if (dueDate == 0L && obj.has("day") && obj.has("month") && obj.has("year")) {
                             val cal = Calendar.getInstance()
@@ -285,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     lilithApp.repository.insertAccounts(accounts)
                 }
-                
+
                 // Importar Tarefas com Compatibilidade
                 if (root.has("tasks")) {
                     val tasks = root.getAsJsonArray("tasks").map { jsonElem ->
@@ -313,7 +322,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-                
+
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Sucesso")
                     .setMessage("Dados importados com sucesso!")
